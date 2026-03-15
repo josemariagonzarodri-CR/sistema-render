@@ -152,6 +152,24 @@
         .flatpickr-input { font-family: 'Poppins', sans-serif !important; }
         select option { background: var(--bg-base); color: var(--text-main); }
         
+        /* Estilo moderno y minimalista para el input de archivo */
+        input[type="file"]::file-selector-button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 12px;
+        }
+        input[type="file"]::file-selector-button:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+        
         /* PANTALLA LOGIN: Siempre visible hasta autenticar */
         #login-overlay { z-index: 10000; background: var(--bg-base); }
 
@@ -336,7 +354,7 @@
                     </div>
 
                     <div class="form-group"><label>Tipo</label><select id="e-tipo" class="form-control" required>
-                        <option value="medico">Cita Médica</option>
+                        <option value="medico" selected>Cita Médica</option>
                         <option value="terapia">Terapia</option>
                         <option value="clases">Clases</option>
                         <option value="trabajo">Trabajo</option>
@@ -525,7 +543,7 @@
             document.getElementById('form-evento').reset();
             const btnBorrar = document.getElementById('btn-borrar-evento');
 
-            // Limpiar y ocultar input de archivo por defecto
+            // Limpiar input de archivo por defecto
             document.getElementById('e-archivo').value = '';
             document.getElementById('container-archivo').style.display = 'none';
 
@@ -561,6 +579,10 @@
                 fpFechaEvento.setDate(hoyString);
                 fpHoraInicioEvento.clear(); fpHoraFinEvento.clear();
                 btnBorrar.style.display = 'none';
+                
+                if (document.getElementById('e-tipo').value === 'medico') {
+                    document.getElementById('container-archivo').style.display = 'block';
+                }
             }
             modal.classList.add('active');
         }
@@ -742,7 +764,7 @@
             document.getElementById('btn-guardar-tarea').textContent = "Guardar Tarea";
         });
 
-        // NUEVO: Guardado de eventos adaptado para enviar archivos con FormData
+        // FIX: Extraer el día, mes y año directamente del objeto del calendario
         document.getElementById('form-evento').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-guardar-evento');
@@ -751,12 +773,13 @@
             let vInicio = document.getElementById('e-hora-inicio').value;
             let vFin = document.getElementById('e-hora-fin').value;
             let horaCompleta = vInicio + (vFin ? ' - ' + vFin : '');
-            const fParts = document.getElementById('e-fecha').value.split('-');
+            
+            const fechaObj = fpFechaEvento.selectedDates[0] || new Date();
 
             const formData = new FormData();
-            formData.append('dia', parseInt(fParts[2], 10));
-            formData.append('mes', parseInt(fParts[1], 10));
-            formData.append('anio', parseInt(fParts[0], 10));
+            formData.append('dia', fechaObj.getDate());
+            formData.append('mes', fechaObj.getMonth() + 1);
+            formData.append('anio', fechaObj.getFullYear());
             formData.append('titulo', document.getElementById('e-titulo').value);
             formData.append('tipo', document.getElementById('e-tipo').value);
             formData.append('hora', horaCompleta);
@@ -792,8 +815,8 @@
                 }
 
                 document.getElementById('form-evento-modal').classList.remove('active');
-                currentMonth = parseInt(fParts[1], 10) - 1; 
-                currentYear = parseInt(fParts[0], 10);
+                currentMonth = fechaObj.getMonth(); 
+                currentYear = fechaObj.getFullYear();
                 await pullEventos();
             } catch (err) { alert(err.message); }
             btn.textContent = "Guardar Evento";
@@ -864,13 +887,14 @@
                 evtsDia.forEach(evt => {
                     let tiempo = evt.hora ? evt.hora.replace(' - ', ' a ') : 'Todo el día';
                     
-                    // NUEVO: Mostrar botón de documento si el evento tiene archivo_url
                     let btnArchivo = evt.archivo_url 
-                        ? `<a href="${evt.archivo_url}" target="_blank" class="btn" style="padding: 4px 10px; font-size: 0.75rem; background: var(--accent); color: white; border:none; text-decoration: none; margin-top: 8px; display: inline-block;">📄 Ver Documento</a>` 
+                        ? `<a href="${evt.archivo_url}" target="_blank" class="btn" style="padding: 4px 10px; font-size: 0.75rem; background: var(--accent); color: white; border:none; text-decoration: none; margin-top: 8px; display: inline-block;" onclick="event.stopPropagation()">📄 Ver Documento</a>` 
                         : '';
 
+                    const evtJson = JSON.stringify(evt).replace(/'/g, "&#39;");
+
                     contenedor.innerHTML += `
-                    <div class="dia-item-card" style="border-color: var(--color-${evt.responsable_id});">
+                    <div class="dia-item-card" style="border-color: var(--color-${evt.responsable_id}); cursor: pointer; transition: background 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(0,0,0,0.1)'" onclick='abrirModalEvento(${evtJson}); document.getElementById("detalle-dia-modal").classList.remove("active");'>
                         <div>
                             <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">EVENTO • ${tiempo}</div>
                             <div style="font-weight: 500;">${evt.titulo}</div>
