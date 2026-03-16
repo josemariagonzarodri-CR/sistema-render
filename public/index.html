@@ -152,23 +152,12 @@
         .flatpickr-input { font-family: 'Poppins', sans-serif !important; }
         select option { background: var(--bg-base); color: var(--text-main); }
         
-        /* Estilo moderno y minimalista para el input de archivo */
-        input[type="file"]::file-selector-button {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-family: 'Poppins', sans-serif;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-right: 12px;
-        }
-        input[type="file"]::file-selector-button:hover {
-            filter: brightness(1.1);
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
-        }
+        /* ESTILOS PARA INPUT FILE Y CHECKBOX DE REPETICION */
+        input[type="file"]::file-selector-button { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-weight: 500; cursor: pointer; transition: all 0.2s ease; margin-right: 12px; }
+        input[type="file"]::file-selector-button:hover { filter: brightness(1.1); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
+        .dia-chk { display: flex; align-items: center; gap: 6px; background: var(--cell-bg); padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--glass-border); transition: all 0.2s; user-select: none; flex-grow: 1; justify-content: center; color: var(--text-main); font-weight: 500;}
+        .dia-chk:hover { border-color: var(--accent); background: rgba(14, 165, 233, 0.1); }
+        .chk-dia { accent-color: var(--accent); transform: scale(1.1); cursor: pointer;}
         
         /* PANTALLA LOGIN: Siempre visible hasta autenticar */
         #login-overlay { z-index: 10000; background: var(--bg-base); }
@@ -348,9 +337,48 @@
                     <div class="form-group"><label>Título</label><input type="text" id="e-titulo" class="form-control" required placeholder="Ej. Clase de Matemáticas"></div>
                     
                     <div style="display: flex; gap: 1rem;">
-                        <div class="form-group" style="flex: 1;"><label>Fecha Exacta</label><input type="text" id="e-fecha" class="form-control" required placeholder="📅 Día"></div>
-                        <div class="form-group" style="flex: 1;"><label>Inicio</label><input type="text" id="e-hora-inicio" class="form-control" placeholder="⏰ Inicio"></div>
-                        <div class="form-group" style="flex: 1;"><label>Fin</label><input type="text" id="e-hora-fin" class="form-control" placeholder="⏰ Fin (Opcional)"></div>
+                        <div class="form-group" id="box-fecha-unica" style="flex: 1;">
+                            <label>Fecha Exacta</label>
+                            <input type="text" id="e-fecha" class="form-control" required placeholder="📅 Día">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Inicio</label>
+                            <input type="text" id="e-hora-inicio" class="form-control" placeholder="⏰ Inicio">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Fin</label>
+                            <input type="text" id="e-hora-fin" class="form-control" placeholder="⏰ Fin (Opcional)">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="box-toggle-rep" style="margin-top: -5px; margin-bottom: 1rem;">
+                        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--accent); font-size: 0.85rem; font-weight: 500;">
+                            <input type="checkbox" id="e-repetitivo" style="width: 16px; height: 16px; accent-color: var(--accent);">
+                            🔄 Programar evento en varios días (Ej. Clases)
+                        </label>
+                    </div>
+
+                    <div id="box-repetitivo-config" style="display: none; background: rgba(14, 165, 233, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(14, 165, 233, 0.2);">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 10px;">
+                            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                <label>Rango: Desde</label>
+                                <input type="text" id="e-fecha-inicio-rep" class="form-control" placeholder="📅 Inicio">
+                            </div>
+                            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                <label>Rango: Hasta</label>
+                                <input type="text" id="e-fecha-fin-rep" class="form-control" placeholder="📅 Fin">
+                            </div>
+                        </div>
+                        <label style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 500;">¿Qué días se repite?</label>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <label class="dia-chk"><input type="checkbox" class="chk-dia" value="1"> Lun</label>
+                            <label class="dia-chk"><input type="checkbox" class="chk-dia" value="2"> Mar</label>
+                            <label class="dia-chk"><input type="checkbox" class="chk-dia" value="3"> Mié</label>
+                            <label class="dia-chk"><input type="checkbox" class="chk-dia" value="4"> Jue</label>
+                            <label class="dia-chk"><input type="checkbox" class="chk-dia" value="5"> Vie</label>
+                            <label class="dia-chk"><input type="checkbox" class="chk-dia" value="6"> Sáb</label>
+                            <label class="dia-chk"><input type="checkbox" class="chk-dia" value="0"> Dom</label>
+                        </div>
                     </div>
 
                     <div class="form-group"><label>Tipo</label><select id="e-tipo" class="form-control" required>
@@ -365,6 +393,13 @@
 
                     <div class="form-group" id="container-archivo" style="display: none; background: rgba(14, 165, 233, 0.1); padding: 10px; border-radius: 8px; border: 1px dashed var(--accent);">
                         <label>🩺 Documento (Receta, PDF, Imagen)</label>
+                        
+                        <div id="archivo-actual-container" style="margin-bottom: 12px; display: none; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                            <span style="font-size: 0.8rem; color: var(--text-main); font-weight: 500;">📄 Archivo guardado:</span>
+                            <a id="link-archivo-actual" href="#" target="_blank" style="color: var(--accent); font-size: 0.8rem; text-decoration: none; margin-left: 8px; font-weight: 600;">Abrir documento</a>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Sube un archivo nuevo abajo si deseas reemplazarlo.</div>
+                        </div>
+
                         <input type="file" id="e-archivo" class="form-control" accept="image/*,.pdf" style="background: transparent; border: none; padding: 0;">
                     </div>
 
@@ -496,7 +531,7 @@
         let globalTareas = []; let globalEventos = [];
         let currentMonth = hoyGlobal.getMonth(); let currentYear = hoyGlobal.getFullYear();
 
-        let fpFiltroDiario, fpFechaTarea, fpHoraInicioTarea, fpHoraFinTarea, fpFechaEvento, fpHoraInicioEvento, fpHoraFinEvento; 
+        let fpFiltroDiario, fpFechaTarea, fpHoraInicioTarea, fpHoraFinTarea, fpFechaEvento, fpHoraInicioEvento, fpHoraFinEvento, fpFechaInicioRep, fpFechaFinRep; 
 
         // --- 3. MODALES CON SEGURIDAD VISUAL DE ROLES ---
         function abrirModalTarea(tarea = null) {
@@ -538,20 +573,38 @@
             modal.classList.add('active');
         }
 
+        // LÓGICA DE VISIBILIDAD PARA EL MODO REPETITIVO
+        document.getElementById('e-repetitivo').addEventListener('change', (e) => {
+            const isRep = e.target.checked;
+            document.getElementById('box-repetitivo-config').style.display = isRep ? 'block' : 'none';
+            document.getElementById('box-fecha-unica').style.display = isRep ? 'none' : 'block';
+            
+            document.getElementById('e-fecha').required = !isRep;
+            document.getElementById('e-fecha-inicio-rep').required = isRep;
+            document.getElementById('e-fecha-fin-rep').required = isRep;
+        });
+
         function abrirModalEvento(evento = null) {
             const modal = document.getElementById('form-evento-modal');
             document.getElementById('form-evento').reset();
             const btnBorrar = document.getElementById('btn-borrar-evento');
 
-            // Limpiar input de archivo por defecto
             document.getElementById('e-archivo').value = '';
             document.getElementById('container-archivo').style.display = 'none';
+            document.getElementById('archivo-actual-container').style.display = 'none';
 
             const usrGlobal = document.getElementById('filtro-usuario-global').value;
             if (usrGlobal !== 'todos') document.getElementById('e-resp').value = usrGlobal;
 
             if (evento) {
+                // Al editar, NO permitimos cambiar a modo repetitivo
                 document.getElementById('modal-evento-titulo').textContent = "Editar Evento";
+                document.getElementById('box-toggle-rep').style.display = 'none';
+                document.getElementById('e-repetitivo').checked = false;
+                document.getElementById('box-repetitivo-config').style.display = 'none';
+                document.getElementById('box-fecha-unica').style.display = 'block';
+                document.getElementById('e-fecha').required = true;
+
                 document.getElementById('e-id').value = evento.id;
                 document.getElementById('e-titulo').value = evento.titulo;
                 const mStr = String(evento.mes).padStart(2, '0');
@@ -569,12 +622,28 @@
                 
                 if (evento.tipo === 'medico') {
                     document.getElementById('container-archivo').style.display = 'block';
+                    if (evento.archivo_url) {
+                        document.getElementById('archivo-actual-container').style.display = 'block';
+                        document.getElementById('link-archivo-actual').href = evento.archivo_url;
+                    }
                 }
 
                 if (userRol === 'admin') btnBorrar.style.display = 'block';
                 else btnBorrar.style.display = 'none';
             } else {
+                // Modo nuevo: Permitimos elegir entre único o repetitivo
                 document.getElementById('modal-evento-titulo').textContent = "Nuevo Evento";
+                document.getElementById('box-toggle-rep').style.display = 'block';
+                document.getElementById('e-repetitivo').checked = false;
+                document.getElementById('box-repetitivo-config').style.display = 'none';
+                document.getElementById('box-fecha-unica').style.display = 'block';
+                document.getElementById('e-fecha').required = true;
+                document.getElementById('e-fecha-inicio-rep').required = false;
+                document.getElementById('e-fecha-fin-rep').required = false;
+                document.querySelectorAll('.chk-dia').forEach(c => c.checked = false);
+                
+                fpFechaInicioRep.clear(); fpFechaFinRep.clear();
+                
                 document.getElementById('e-id').value = "";
                 fpFechaEvento.setDate(hoyString);
                 fpHoraInicioEvento.clear(); fpHoraFinEvento.clear();
@@ -587,7 +656,6 @@
             modal.classList.add('active');
         }
 
-        // Lógica para mostrar/ocultar carga de archivos
         document.getElementById('e-tipo').addEventListener('change', (e) => {
             const container = document.getElementById('container-archivo');
             if (e.target.value === 'medico') {
@@ -595,6 +663,7 @@
             } else {
                 container.style.display = 'none';
                 document.getElementById('e-archivo').value = ''; 
+                document.getElementById('archivo-actual-container').style.display = 'none';
             }
         });
 
@@ -764,59 +833,122 @@
             document.getElementById('btn-guardar-tarea').textContent = "Guardar Tarea";
         });
 
-        // FIX: Extraer el día, mes y año directamente del objeto del calendario
+        // NUEVO: Orquestador inteligente de fechas para evitar rediseñar la base de datos
         document.getElementById('form-evento').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-guardar-evento');
-            btn.textContent = "Guardando...";
+            btn.textContent = "Procesando...";
             
             let vInicio = document.getElementById('e-hora-inicio').value;
             let vFin = document.getElementById('e-hora-fin').value;
             let horaCompleta = vInicio + (vFin ? ' - ' + vFin : '');
             
-            const fechaObj = fpFechaEvento.selectedDates[0] || new Date();
-
-            const formData = new FormData();
-            formData.append('dia', fechaObj.getDate());
-            formData.append('mes', fechaObj.getMonth() + 1);
-            formData.append('anio', fechaObj.getFullYear());
-            formData.append('titulo', document.getElementById('e-titulo').value);
-            formData.append('tipo', document.getElementById('e-tipo').value);
-            formData.append('hora', horaCompleta);
-            formData.append('responsable_id', document.getElementById('e-resp').value);
-            formData.append('responsable_nombre', nombresRoles[document.getElementById('e-resp').value]);
-            formData.append('prioridad', document.getElementById('e-prio').value);
-
+            const isRepetitivo = document.getElementById('e-repetitivo').checked;
             const id = document.getElementById('e-id').value;
-            if (id) formData.append('id', id);
-
-            const archivoInput = document.getElementById('e-archivo');
-            if (archivoInput.files.length > 0) {
-                formData.append('archivo', archivoInput.files[0]);
-            }
+            const currentToken = localStorage.getItem('token');
+            const url = id ? '/api/eventos' : '/api/eventos'; 
+            const method = id ? 'PUT' : 'POST';
 
             try {
-                const currentToken = localStorage.getItem('token');
-                const url = id ? '/api/eventos' : '/api/eventos'; 
-                const method = id ? 'PUT' : 'POST';
+                if (isRepetitivo && !id) {
+                    // MODO CUATRIMESTRE / REPETITIVO
+                    const fInicioObj = fpFechaInicioRep.selectedDates[0];
+                    const fFinObj = fpFechaFinRep.selectedDates[0];
+                    
+                    if (!fInicioObj || !fFinObj) throw new Error("Debes seleccionar la fecha de inicio y fin del cuatrimestre.");
+                    if (fInicioObj > fFinObj) throw new Error("La fecha de inicio no puede ser mayor a la fecha de fin.");
+                    
+                    const diasSeleccionados = Array.from(document.querySelectorAll('.chk-dia:checked')).map(cb => parseInt(cb.value, 10));
+                    if (diasSeleccionados.length === 0) throw new Error("Debes seleccionar al menos un día de la semana (Ej. Lunes y Jueves).");
 
-                const res = await fetch(url, {
-                    method: method,
-                    headers: { 'Authorization': 'Bearer ' + currentToken },
-                    body: formData 
-                });
+                    const promesas = [];
+                    
+                    // Aseguramos la hora al mediodía para evitar saltos raros por cambios de horario de verano
+                    let actual = new Date(fInicioObj);
+                    actual.setHours(12, 0, 0, 0);
+                    const limite = new Date(fFinObj);
+                    limite.setHours(23, 59, 59, 999);
 
-                const data = await res.json();
-                if (!res.ok) {
-                    if (res.status === 401 || res.status === 403) {
-                        localStorage.clear(); location.reload();
+                    while (actual <= limite) {
+                        // Si el día de la semana actual coincide con uno de los seleccionados, armamos el paquete
+                        if (diasSeleccionados.includes(actual.getDay())) {
+                            const fd = new FormData();
+                            fd.append('dia', actual.getDate());
+                            fd.append('mes', actual.getMonth() + 1);
+                            fd.append('anio', actual.getFullYear());
+                            fd.append('titulo', document.getElementById('e-titulo').value);
+                            fd.append('tipo', document.getElementById('e-tipo').value);
+                            fd.append('hora', horaCompleta);
+                            fd.append('responsable_id', document.getElementById('e-resp').value);
+                            fd.append('responsable_nombre', nombresRoles[document.getElementById('e-resp').value]);
+                            fd.append('prioridad', document.getElementById('e-prio').value);
+                            
+                            const archivoInput = document.getElementById('e-archivo');
+                            if (archivoInput.files.length > 0) { fd.append('archivo', archivoInput.files[0]); }
+
+                            promesas.push(fetch(url, { method: method, headers: { 'Authorization': 'Bearer ' + currentToken }, body: fd }));
+                        }
+                        // Brincamos al siguiente día
+                        actual.setDate(actual.getDate() + 1);
                     }
-                    throw new Error(data.error || "Fallo servidor");
+
+                    if(promesas.length === 0) throw new Error("No hay días que coincidan en el rango seleccionado.");
+                    
+                    btn.textContent = `Creando ${promesas.length} clases...`;
+                    const responses = await Promise.all(promesas); // Enviamos todos de un solo golpe
+                    
+                    for(let r of responses) {
+                        if(!r.ok) {
+                            const d = await r.json();
+                            if (r.status === 401 || r.status === 403) { localStorage.clear(); location.reload(); }
+                            throw new Error(d.error || "Fallo al guardar la repetición.");
+                        }
+                    }
+
+                    currentMonth = fInicioObj.getMonth(); 
+                    currentYear = fInicioObj.getFullYear();
+
+                } else {
+                    // MODO NORMAL (Día único o Edición)
+                    const fechaObj = fpFechaEvento.selectedDates[0] || new Date();
+
+                    const formData = new FormData();
+                    formData.append('dia', fechaObj.getDate());
+                    formData.append('mes', fechaObj.getMonth() + 1);
+                    formData.append('anio', fechaObj.getFullYear());
+                    formData.append('titulo', document.getElementById('e-titulo').value);
+                    formData.append('tipo', document.getElementById('e-tipo').value);
+                    formData.append('hora', horaCompleta);
+                    formData.append('responsable_id', document.getElementById('e-resp').value);
+                    formData.append('responsable_nombre', nombresRoles[document.getElementById('e-resp').value]);
+                    formData.append('prioridad', document.getElementById('e-prio').value);
+
+                    if (id) formData.append('id', id);
+
+                    const archivoInput = document.getElementById('e-archivo');
+                    if (archivoInput.files.length > 0) {
+                        formData.append('archivo', archivoInput.files[0]);
+                    }
+
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: { 'Authorization': 'Bearer ' + currentToken },
+                        body: formData 
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) {
+                        if (res.status === 401 || res.status === 403) {
+                            localStorage.clear(); location.reload();
+                        }
+                        throw new Error(data.error || "Fallo servidor");
+                    }
+
+                    currentMonth = fechaObj.getMonth(); 
+                    currentYear = fechaObj.getFullYear();
                 }
 
                 document.getElementById('form-evento-modal').classList.remove('active');
-                currentMonth = fechaObj.getMonth(); 
-                currentYear = fechaObj.getFullYear();
                 await pullEventos();
             } catch (err) { alert(err.message); }
             btn.textContent = "Guardar Evento";
@@ -916,6 +1048,8 @@
 
         fpFechaTarea = flatpickr("#t-fecha", configFecha);
         fpFechaEvento = flatpickr("#e-fecha", configFecha);
+        fpFechaInicioRep = flatpickr("#e-fecha-inicio-rep", configFecha);
+        fpFechaFinRep = flatpickr("#e-fecha-fin-rep", configFecha);
 
         fpHoraInicioTarea = flatpickr("#t-hora-inicio", configHora);
         fpHoraFinTarea = flatpickr("#t-hora-fin", configHora);

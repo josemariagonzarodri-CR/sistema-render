@@ -3,9 +3,9 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
 const jwt = require('jsonwebtoken'); 
-const multer = require('multer'); // NUEVO: Para manejar archivos
-const { createClient } = require('@supabase/supabase-js'); // NUEVO: Cliente de Supabase
-require('dotenv').config(); // NUEVO: Cargar variables de entorno
+const multer = require('multer'); 
+const { createClient } = require('@supabase/supabase-js'); 
+require('dotenv').config(); 
 
 const app = express();
 app.use(cors());
@@ -33,9 +33,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 const SECRET_KEY = process.env.JWT_SECRET || 'llave-ultra-secreta-familiar-2026';
 
 const USUARIOS = {
-    'chema': { password: 'chemaPassword123', rol: 'admin', id: 'chema' },
-    'mel':   { password: 'melPassword123', rol: 'admin', id: 'mel' },
-    'bri':   { password: 'briPassword123', rol: 'creador', id: 'bri' }
+    'chema': { password: 'P1n3luv.89712', rol: 'admin', id: 'chema' },
+    'mel':   { password: 'Ch3mel.2901', rol: 'admin', id: 'mel' },
+    'bri':   { password: 'Br1.titi.897', rol: 'creador', id: 'bri' }
 };
 
 app.post('/api/login', (req, res) => {
@@ -66,6 +66,17 @@ const verificarToken = (req, res, next) => {
 };
 
 // ==========================================
+// FUNCIÓN LIMPIADORA DE NOMBRES DE ARCHIVO
+// ==========================================
+function limpiarNombreArchivo(nombre) {
+    return nombre
+        .normalize("NFD") // Descompone acentos
+        .replace(/[\u0300-\u036f]/g, "") // Elimina acentos
+        .replace(/\s+/g, '_') // Cambia espacios por guiones bajos
+        .replace(/[^a-zA-Z0-9._-]/g, ''); // Elimina cualquier simbolo raro
+}
+
+// ==========================================
 // RUTAS PARA EVENTOS (BLINDADAS Y CON ARCHIVOS)
 // ==========================================
 app.get('/api/eventos', verificarToken, async (req, res) => {
@@ -81,7 +92,9 @@ app.post('/api/eventos', verificarToken, upload.single('archivo'), async (req, r
         let archivo_url = null;
 
         if (req.file) {
-            const fileName = `${Date.now()}_${req.file.originalname.replace(/\s+/g, '_')}`;
+            // FIX: Aplicar la funcion limpiadora al nombre del archivo
+            const nombreLimpio = limpiarNombreArchivo(req.file.originalname);
+            const fileName = `${Date.now()}_${nombreLimpio}`;
             
             const { data, error } = await supabase.storage
                 .from('archivos_medicos')
