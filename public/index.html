@@ -480,15 +480,13 @@
         </div>
 
     </div>
-
     <script>
         // ==========================================
-        // 0. CONFIGURACIÓN SUPABASE (REEMPLAZA AQUÍ)
+        // 0. CONFIGURACIÓN SUPABASE
         // ==========================================
         const SUPABASE_URL = 'https://dezkcwilmoogrsumacuf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlemtjd2lsbW9vZ3JzdW1hY3VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1ODEwNjQsImV4cCI6MjA4OTE1NzA2NH0.-43ZHJxNA0cayi6La-46qGcwKHpFdDMposexrxJ0CKc';
         
-        // ¡Aquí está el arreglo! Cambiamos el nombre a clienteSupabase
         const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // --- MANEJO DE SESIÓN LOCAL ---
@@ -506,7 +504,7 @@
         }
 
         // ==========================================
-        // LÓGICA DE LOGIN Y MFA (SUPABASE)
+        // LÓGICA DE LOGIN Y MFA
         // ==========================================
         const formLogin = document.getElementById('form-login');
         const formVerify = document.getElementById('form-verify-mfa');
@@ -521,7 +519,6 @@
             setTimeout(() => errP.style.display = 'none', 5000);
         }
 
-        // 1. Enviar Correo y Contraseña
         formLogin.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
@@ -551,7 +548,6 @@
             checkMFA();
         });
 
-        // 2. Comprobar si necesita configurar MFA o solo validar
         async function checkMFA() {
             const { data, error } = await clienteSupabase.auth.mfa.listFactors();
             if (error) {
@@ -560,7 +556,6 @@
             }
 
             const totpFactors = data.totp || [];
-
             const verificados = totpFactors.filter(f => f.status === 'verified');
             const aMedias = totpFactors.filter(f => f.status === 'unverified');
 
@@ -580,7 +575,6 @@
             }
         }
 
-        // 3. Generar y mostrar código QR para nuevo MFA
         async function setupNewMFA() {
             const { data, error } = await clienteSupabase.auth.mfa.enroll({ factorType: 'totp' });
             if (error) {
@@ -604,7 +598,6 @@
             formVerify.classList.remove('hidden-mfa');
         });
 
-        // 4. Validar el código de 6 dígitos
         formVerify.addEventListener('submit', async (e) => {
             e.preventDefault();
             const code = document.getElementById('mfa-code').value;
@@ -650,6 +643,8 @@
 
 
         // ==========================================
+        // PETICIONES AL SERVIDOR (CON PARCHE TEMPORAL)
+        // ==========================================
         async function apiFetch(url, method, data) {
             const currentToken = localStorage.getItem('token');
             const res = await fetch(url, { 
@@ -661,8 +656,10 @@
             if (!res.ok) {
                 if (res.status === 401 || res.status === 403) {
                     if(resData.error && (resData.error.includes('expirada') || resData.error.includes('denegado'))) {
-                        localStorage.clear();
-                        location.reload();
+                        // PARCHE: Comentamos esto para que la página no te expulse
+                        // localStorage.clear();
+                        // location.reload();
+                        console.error("El servidor rechazó el token de Supabase:", resData.error);
                     }
                 }
                 throw new Error(resData.error || "Fallo servidor");
@@ -1005,7 +1002,6 @@
             document.getElementById('btn-guardar-tarea').textContent = "Guardar Tarea";
         });
 
-        // Orquestador de fechas repetitivas
         document.getElementById('form-evento').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-guardar-evento');

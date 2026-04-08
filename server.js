@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
-const jwt = require('jsonwebtoken'); 
 const multer = require('multer'); 
 const { createClient } = require('@supabase/supabase-js'); 
 require('dotenv').config(); 
@@ -28,40 +27,39 @@ const supabase = createClient(
 const upload = multer({ storage: multer.memoryStorage() });
 
 // ==========================================
-// 🔐 SISTEMA DE AUTENTICACIÓN Y ROLES
+// 🔐 NUEVO SISTEMA DE AUTENTICACIÓN (SUPABASE)
 // ==========================================
-const SECRET_KEY = process.env.JWT_SECRET || 'llave-ultra-secreta-familiar-2026';
 
-const USUARIOS = {
-    'chema': { password: 'P1n3luv.89712', rol: 'admin', id: 'chema' },
-    'mel':   { password: 'Ch3mel.2901', rol: 'admin', id: 'mel' },
-    'bri':   { password: 'Br1.titi.897', rol: 'creador', id: 'bri' }
-};
-
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = USUARIOS[(username || '').toLowerCase()];
-    
-    if (!user || user.password !== password) {
-        return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
-    }
-
-    const token = jwt.sign({ id: user.id, rol: user.rol }, SECRET_KEY, { expiresIn: '24h' });
-    res.json({ success: true, token, rol: user.rol, id: user.id });
-});
-
-const verificarToken = (req, res, next) => {
+// El middleware ahora valida la "Llave Maestra" (Token) directamente con Supabase
+const verificarToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(403).json({ error: 'Acceso denegado. Inicia sesión.' });
 
     const token = authHeader.split(' ')[1]; 
     
     try {
-        const decoded = jwt.verify(token, SECRET_KEY);
-        req.usuario = decoded; 
+        // Le preguntamos a Supabase si este token es válido y a quién pertenece
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return res.status(401).json({ error: 'denegado' }); // Esta palabra clave activa el re-login en el index.html
+        }
+
+        // Sistema dinámico de roles basado en el correo electrónico
+        let rolAsignado = 'admin'; // Chema, Mel y Bely son admin por defecto
+        if (user.email.toLowerCase().includes('bri')) {
+            rolAsignado = 'creador'; // Mantenemos el rol limitado para Bri
+        }
+
+        req.usuario = {
+            id: user.email.split('@')[0], // Usamos la primera parte del correo como ID temporal
+            rol: rolAsignado,
+            email: user.email
+        };
+
         next();
     } catch (err) {
-        return res.status(401).json({ error: 'Sesión expirada. Vuelve a iniciar sesión.' });
+        return res.status(401).json({ error: 'denegado' });
     }
 };
 
@@ -70,10 +68,10 @@ const verificarToken = (req, res, next) => {
 // ==========================================
 function limpiarNombreArchivo(nombre) {
     return nombre
-        .normalize("NFD") // Descompone acentos
-        .replace(/[\u0300-\u036f]/g, "") // Elimina acentos
-        .replace(/\s+/g, '_') // Cambia espacios por guiones bajos
-        .replace(/[^a-zA-Z0-9._-]/g, ''); // Elimina cualquier simbolo raro
+        .normalize("NFD") 
+        .replace(/[\u0300-\u036f]/g, "") 
+        .replace(/\s+/g, '_') 
+        .replace(/[^a-zA-Z0-9._-]/g, ''); 
 }
 
 // ==========================================
@@ -92,7 +90,6 @@ app.post('/api/eventos', verificarToken, upload.single('archivo'), async (req, r
         let archivo_url = null;
 
         if (req.file) {
-            // FIX: Aplicar la funcion limpiadora al nombre del archivo
             const nombreLimpio = limpiarNombreArchivo(req.file.originalname);
             const fileName = `${Date.now()}_${nombreLimpio}`;
             
