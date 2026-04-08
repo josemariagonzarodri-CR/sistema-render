@@ -17,6 +17,8 @@
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
 
@@ -198,6 +200,7 @@
         .chk-dia { accent-color: var(--accent); transform: scale(1.1); cursor: pointer;}
         
         #login-overlay { z-index: 10000; background: var(--bg-base); }
+        .hidden-mfa { display: none !important; }
 
         @media (max-width: 1024px) {
             .workload-grid { grid-template-columns: repeat(2, 1fr); }
@@ -245,18 +248,16 @@
         }
     </style>
 </head>
-<body>
+<body class="light-theme">
+    
     <div class="modal-overlay active" id="login-overlay">
-        <div class="modal-content" style="width: 350px;">
-            <h2 style="text-align:center; margin-bottom: 1.5rem;">🔑 Acceso Familiar</h2>
+        <div class="modal-content" style="width: 380px;">
+            <h2 style="text-align:center; margin-bottom: 1.5rem; color: var(--text-main);" id="login-title">🔑 Acceso Familiar</h2>
+            
             <form id="form-login">
                 <div class="form-group">
-                    <label>Usuario</label>
-                    <select id="login-user" class="form-control" required>
-                        <option value="chema">Chema</option>
-                        <option value="mel">Mel</option>
-                        <option value="bri">Bri</option>
-                    </select>
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="login-email" class="form-control" required placeholder="tu@correo.com">
                 </div>
                 <div class="form-group">
                     <label>Contraseña</label>
@@ -265,6 +266,24 @@
                 <p id="login-error" style="color:#ef4444; font-size:0.85rem; text-align:center; display:none; margin-bottom: 1rem;"></p>
                 <button type="submit" class="btn btn-primary" style="width:100%; margin-top:0.5rem;" id="btn-login">Entrar Seguros</button>
             </form>
+
+            <div id="mfa-setup-section" class="hidden-mfa" style="text-align: center;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Escanea esto o guarda el código en tus Contraseñas de Apple.</p>
+                <div id="qr-container" style="background: white; padding: 10px; border-radius: 8px; display: inline-block; margin-bottom: 1rem;"></div>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">Código Secreto:</p>
+                <code id="secret-text" style="display: block; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; word-break: break-all; user-select: all;"></code>
+                <button type="button" class="btn btn-primary" style="width:100%;" id="btn-continue-setup">Ya lo guardé, continuar</button>
+            </div>
+
+            <form id="form-verify-mfa" class="hidden-mfa">
+                <div class="form-group">
+                    <label style="text-align: center;">Código de 6 dígitos</label>
+                    <input type="text" id="mfa-code" class="form-control" required maxlength="6" pattern="\d{6}" placeholder="000000" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;">
+                </div>
+                <p id="mfa-error" style="color:#ef4444; font-size:0.85rem; text-align:center; display:none; margin-bottom: 1rem;"></p>
+                <button type="submit" class="btn btn-primary" style="width:100%; margin-top:0.5rem;" id="btn-verify">Verificar Acceso</button>
+            </form>
+
         </div>
     </div>
 
@@ -461,8 +480,16 @@
         </div>
 
     </div>
+
     <script>
-        // --- 0. SEGURIDAD Y AUTENTICACIÓN ---
+        // ==========================================
+        // 0. CONFIGURACIÓN SUPABASE (REEMPLAZA AQUÍ)
+        // ==========================================
+        const SUPABASE_URL = 'https://dezkcwilmoogrsumacuf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlemtjd2lsbW9vZ3JzdW1hY3VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1ODEwNjQsImV4cCI6MjA4OTE1NzA2NH0.-43ZHJxNA0cayi6La-46qGcwKHpFdDMposexrxJ0CKc';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- MANEJO DE SESIÓN LOCAL ---
         const token = localStorage.getItem('token');
         const userRol = localStorage.getItem('rol');
         const userId = localStorage.getItem('id');
@@ -476,40 +503,163 @@
             document.getElementById('btn-logout').style.display = 'block';
         }
 
-        document.getElementById('form-login').addEventListener('submit', async (e) => {
+        // ==========================================
+        // LÓGICA DE LOGIN Y MFA (SUPABASE)
+        // ==========================================
+        const formLogin = document.getElementById('form-login');
+        const formVerify = document.getElementById('form-verify-mfa');
+        const sectionSetup = document.getElementById('mfa-setup-section');
+        const titleLogin = document.getElementById('login-title');
+        let currentFactorId = null;
+
+        function showMFAError(msg, elementId) {
+            const errP = document.getElementById(elementId);
+            errP.innerText = msg;
+            errP.style.display = 'block';
+            setTimeout(() => errP.style.display = 'none', 5000);
+        }
+
+        // 1. Enviar Correo y Contraseña
+        formLogin.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const u = document.getElementById('login-user').value;
-            const p = document.getElementById('login-pass').value;
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pass').value;
             const btn = document.getElementById('btn-login');
+
             btn.innerText = 'Verificando...';
-            
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: u, password: p })
-                });
-                const data = await res.json();
-                
-                if (!res.ok) throw new Error(data.error);
-                
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('rol', data.rol);
-                localStorage.setItem('id', data.id);
-                location.reload(); 
-            } catch (err) {
-                const errP = document.getElementById('login-error');
-                errP.innerText = err.message;
-                errP.style.display = 'block';
+            btn.disabled = true;
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                // Ahora mostramos el error exacto que nos devuelve Supabase
+                let msj = 'Credenciales incorrectas.';
+                if (error.message.includes('Email not confirmed')) msj = 'Falta confirmar este correo en Supabase.';
+                else if (error.message.includes('Invalid login')) msj = 'Correo o contraseña equivocados.';
+
+                showMFAError(msj + ' (' + error.message + ')', 'login-error');
                 btn.innerText = 'Entrar Seguros';
+                btn.disabled = false;
+                return;
+            }
+
+            // Guardamos el "id" extrayéndolo del inicio del correo para compatibilidad
+            const nombreCorreo = email.split('@')[0];
+            localStorage.setItem('id', nombreCorreo);
+            localStorage.setItem('rol', 'user');
+
+            checkMFA();
+        });
+
+        // 2. Comprobar si necesita configurar MFA o solo validar
+        async function checkMFA() {
+            const { data, error } = await supabase.auth.mfa.listFactors();
+            if (error) {
+                showMFAError('Error al conectar con seguridad.', 'login-error');
+                return;
+            }
+
+            const totpFactors = data.totp || [];
+
+            // SEPARAMOS: Los que ya funcionan vs los que se quedaron atascados a medias
+            const verificados = totpFactors.filter(f => f.status === 'verified');
+            const aMedias = totpFactors.filter(f => f.status === 'unverified');
+
+            formLogin.classList.add('hidden-mfa');
+
+            if (verificados.length > 0) {
+                // Ya tiene su MFA funcionando perfecto, pedir los 6 dígitos
+                currentFactorId = verificados[0].id;
+                titleLogin.innerText = "🔒 Código de Seguridad";
+                formVerify.classList.remove('hidden-mfa');
+            } else {
+                // Si hay un MFA fantasma/a medias, lo destruimos para que no estorbe
+                if (aMedias.length > 0) {
+                    for (let factor of aMedias) {
+                        await supabase.auth.mfa.unenroll({ factorId: factor.id });
+                    }
+                }
+                // Generamos un QR completamente nuevo
+                setupNewMFA();
+            }
+        }
+
+        // 3. Generar y mostrar código QR para nuevo MFA
+        async function setupNewMFA() {
+            const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+            if (error) {
+                showMFAError('Error al generar seguridad.', 'login-error');
+                return;
+            }
+            currentFactorId = data.id;
+            
+            // Insertar imagen SVG del QR
+            document.getElementById('qr-container').innerHTML = data.totp.qr_code;
+            document.getElementById('qr-container').querySelector('svg').style.width = '150px';
+            document.getElementById('qr-container').querySelector('svg').style.height = '150px';
+            document.getElementById('secret-text').innerText = data.totp.secret;
+            
+            titleLogin.innerText = "📱 Configurar Seguridad";
+            sectionSetup.classList.remove('hidden-mfa');
+        }
+
+        document.getElementById('btn-continue-setup').addEventListener('click', () => {
+            sectionSetup.classList.add('hidden-mfa');
+            titleLogin.innerText = "🔒 Confirma el Código";
+            formVerify.classList.remove('hidden-mfa');
+        });
+
+        // 4. Validar el código de 6 dígitos
+        formVerify.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('mfa-code').value;
+            const btn = document.getElementById('btn-verify');
+            
+            btn.innerText = 'Validando...';
+            btn.disabled = true;
+
+            const challenge = await supabase.auth.mfa.challenge({ factorId: currentFactorId });
+            
+            if (challenge.error) {
+                showMFAError('Error de conexión.', 'mfa-error');
+                btn.innerText = 'Verificar Acceso';
+                btn.disabled = false;
+                return;
+            }
+
+            const verify = await supabase.auth.mfa.verify({
+                factorId: currentFactorId,
+                challengeId: challenge.data.id,
+                code: code
+            });
+
+            if (verify.error) {
+                showMFAError('Código incorrecto.', 'mfa-error');
+                btn.innerText = 'Verificar Acceso';
+                btn.disabled = false;
+                document.getElementById('mfa-code').value = '';
+            } else {
+                // Obtener el token de acceso real
+                const { data: sessionData } = await supabase.auth.getSession();
+                if (sessionData && sessionData.session) {
+                    localStorage.setItem('token', sessionData.session.access_token);
+                    location.reload(); 
+                }
             }
         });
 
-        document.getElementById('btn-logout').addEventListener('click', () => {
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            await supabase.auth.signOut();
             localStorage.clear();
             location.reload();
         });
 
+
+        // ==========================================
+        // NOTA: Para que las siguientes funciones (apiFetch) funcionen con Supabase, 
+        // deberás migrar tus rutas de API (/api/tareas) a consultas de Supabase JS 
+        // ej: supabase.from('tareas_diarias').select('*')
+        // ==========================================
         async function apiFetch(url, method, data) {
             const currentToken = localStorage.getItem('token');
             const res = await fetch(url, { 
@@ -759,7 +909,6 @@
 
                         visibles.forEach(evt => {
                             const tag = document.createElement('div');
-                            // CLASE POR USUARIO (SIN PRIORIDADES NI TIPOS)
                             tag.className = `badge user-${evt.responsable_id}`;
                             
                             let soloInicio = (evt.hora || "").split(' - ')[0];
