@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibrant Family App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Cliente oficial de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Barra de Navegación -->
+    <nav class="glass-nav">
+        <h1 class="logo">Family App</h1>
+        <div class="nav-buttons">
+            <button id="btn-compras" class="btn-vibrant-blue">Compras</button>
+            <button id="btn-calendario" class="btn-vibrant-green">Menú</button>
+        </div>
+    </nav>
+
+    <!-- Contenedor Principal Dinámico -->
+    <main id="app-container" class="glass-container">
+        <h2 id="vista-titulo">Cargando Sistema...</h2>
+        <p id="status-db" class="text-blue">Conectando a la base de datos...</p>
+        
+        <!-- Aquí se inyectarán las vistas de los módulos -->
+        <div id="modulo-contenido"></div>
+    </main>
+
+    <!-- El Orquestador -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
